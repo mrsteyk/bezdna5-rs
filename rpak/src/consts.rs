@@ -4,7 +4,6 @@ use std::convert::From;
 #[derive(Debug)]
 pub enum RPakVersion {
     Invalid = 0,
-    TF2 = 7,
     APEX = 8,
 }
 
@@ -29,7 +28,5 @@ impl From<crate::decomp::Error> for RPakError {
     }
 }
 
-/// Header size for TF2(ver 7) based games
-pub const HEADER_SIZE_TF2: usize = 88;
 /// Header size for Apex(ver 8) based games
 pub const HEADER_SIZE_APEX: usize = 0x80;
