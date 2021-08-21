@@ -1,0 +1,3 @@
+[profile.release]
+lto = "thin"
+opt-level = 3 # might break shit, but who cares...
