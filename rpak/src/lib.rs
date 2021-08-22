@@ -15,6 +15,8 @@ use std::{
     rc::Rc,
 };
 
+pub use chrono::NaiveDateTime;
+
 use byteorder::{ReadBytesExt, LE};
 pub use consts::*;
 

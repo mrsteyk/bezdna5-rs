@@ -33,7 +33,7 @@ fn apex(rpak: &rpak::apex::RPakFile, guid_name: &HashMap<u64, String>) {
     // let early = apex::RPakFile::read(cursor_early.get_mut()).unwrap();
 
     let header = &rpak.header;
-    println!("{} | {}\n", header.part_rpak, header.is_compressed());
+    println!("{} | {}\n", header.patches_num, header.is_compressed());
 
     println!("{:#?}", header);
 

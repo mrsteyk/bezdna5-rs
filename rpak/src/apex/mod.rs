@@ -3,6 +3,7 @@ use std::io::{Cursor, Read, Seek, SeekFrom};
 use std::rc::Rc;
 
 use byteorder::{ReadBytesExt, LE};
+use crate::NaiveDateTime;
 
 use crate::decomp::decompress;
 use crate::util::string_from_buf;
@@ -18,7 +19,7 @@ pub struct RPakHeader {
     pub version: u16,
     pub flags: u16,
 
-    pub typ: u64,
+    pub timestamp: NaiveDateTime,
     pub unk10: u64,
 
     pub size_disk: u64,
@@ -34,7 +35,7 @@ pub struct RPakHeader {
     pub sections_num: u16,    // 0x4c
     pub data_chunks_num: u16, // 0x4e
 
-    pub part_rpak: u16, // 0x50
+    pub patches_num: u16, // 0x50
 
     pub unk52: u16,
     pub unk54: u32,
@@ -77,7 +78,12 @@ impl RPakHeader {
             version,
             flags,
 
-            typ: cursor.read_u64::<LE>()?,
+            timestamp: {
+                let file_time = cursor.read_u64::<LE>()?;
+                let unix = (file_time/10000000) - 11644473600;
+
+                NaiveDateTime::from_timestamp(unix as i64, 0)
+            },
             unk10: cursor.read_u64::<LE>()?,
             size_disk: cursor.read_u64::<LE>()?,
 
@@ -93,7 +99,7 @@ impl RPakHeader {
             sections_num: cursor.read_u16::<LE>()?,
             data_chunks_num: cursor.read_u16::<LE>()?,
 
-            part_rpak: cursor.read_u16::<LE>()?,
+            patches_num: cursor.read_u16::<LE>()?,
             unk52: cursor.read_u16::<LE>()?,
 
             unk54: cursor.read_u32::<LE>()?,
@@ -172,7 +178,7 @@ impl RPakFile {
     pub fn read<R: Read + Seek + ReadBytesExt>(cursor: &mut R) -> Result<Self, crate::RPakError> {
         let header = RPakHeader::read(cursor)?;
 
-        if header.part_rpak != 0 {
+        if header.patches_num != 0 {
             todo!("Part RPak")
         }
         if header.unk74 != 0 {
@@ -189,9 +195,11 @@ impl RPakFile {
                 header.size_decompressed as usize,
                 crate::HEADER_SIZE_APEX,
             )?;
+            // TODO: fix header
             d[..crate::HEADER_SIZE_APEX].clone_from_slice(&vec[..crate::HEADER_SIZE_APEX]);
             Cursor::new(d)
         } else {
+            // TODO: change to cursor's clone?
             Cursor::new(vec)
         };
 

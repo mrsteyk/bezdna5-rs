@@ -1,5 +1,6 @@
 [workspace]
 members = [
     "rpak",
-    "rpak_debug"
+    "rpak_debug",
+    "rpak_ddecomp"
 ]
