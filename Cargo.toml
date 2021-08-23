@@ -2,5 +2,6 @@
 members = [
     "rpak",
     "rpak_debug",
-    "rpak_ddecomp"
+    "rpak_ddecomp",
+    "rpak_hash",
 ]

@@ -63,9 +63,9 @@ impl AnimationRig {
         cursor.seek(SeekFrom::Start(generic.get_desc_off()))?;
 
         let unk0 = {
-                let id = cursor.read_u32::<LE>()?;
-                let off = cursor.read_u32::<LE>()?;
-                seeks[id as usize] + off as u64
+            let id = cursor.read_u32::<LE>()?;
+            let off = cursor.read_u32::<LE>()?;
+            seeks[id as usize] + off as u64
         };
 
         let name_off = {

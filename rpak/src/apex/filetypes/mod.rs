@@ -4,15 +4,15 @@ use byteorder::{ReadBytesExt, LE};
 
 type Descriptor = (u32, u32, u64);
 
+pub mod arig;
 pub mod dtbl;
 pub mod matl;
+pub mod rmdl;
 pub mod rui;
 pub mod stgs;
 pub mod stlt;
 pub mod txtr;
 pub mod uimg;
-pub mod rmdl;
-pub mod arig;
 
 #[derive(Debug)]
 pub struct FileGeneric {

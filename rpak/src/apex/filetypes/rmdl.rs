@@ -68,9 +68,9 @@ impl Model {
         cursor.seek(SeekFrom::Start(generic.get_desc_off()))?;
 
         let unk0 = {
-                let id = cursor.read_u32::<LE>()?;
-                let off = cursor.read_u32::<LE>()?;
-                seeks[id as usize] + off as u64
+            let id = cursor.read_u32::<LE>()?;
+            let off = cursor.read_u32::<LE>()?;
+            seeks[id as usize] + off as u64
         };
         assert_eq!(cursor.read_u64::<LE>()?, 0, "Reserved != 0");
 
@@ -113,9 +113,9 @@ impl Model {
         //     assert_eq!(cursor.read_u32::<LE>()?, 0, "Padding[{}] != 0", i);
         // }
 
-        let pads: Vec<u32> = (0..(0x28/4)).map(|_| {
-            cursor.read_u32::<LE>().unwrap()
-        }).collect();
+        let pads: Vec<u32> = (0..(0x28 / 4))
+            .map(|_| cursor.read_u32::<LE>().unwrap())
+            .collect();
 
         cursor.seek(SeekFrom::Start(name_off))?;
         let name = util::string_from_buf(cursor);

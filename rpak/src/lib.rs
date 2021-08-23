@@ -251,18 +251,23 @@ pub fn predict_names(rpak_file: &dyn RPakFile, file_stem: String) -> HashMap<u64
         .iter()
         .for_each(|f| match f.get_ext() {
             "matl" => {
-                if !f.get_name().unwrap().ends_with("_colpass") {
-                    // spc = exp
-                    // ilm = glw
-                    for i in &["col", "nml", "opa", "ilm", "spc", "glw", "lim"] {
-                        let pair = generate_pair(&format!("{}_{}.rpak", f.get_name().unwrap(), i));
-                        ret.insert(pair.0, pair.1);
+                if let Some(name) = f.get_name() {
+                    if !name.ends_with("_colpass") {
+                        // spc = exp
+                        // ilm = glw
+                        for i in &["col", "nml", "opa", "ilm", "spc", "glw", "lim"] {
+                            let pair =
+                                generate_pair(&format!("{}_{}.rpak", f.get_name().unwrap(), i));
+                            ret.insert(pair.0, pair.1);
+                        }
                     }
                 }
             }
             "ui" => {
-                let pair = generate_pair(&format!("ui/{}.rpak", f.get_name().unwrap()));
-                ret.insert(pair.0, pair.1);
+                if let Some(name) = f.get_name() {
+                    let pair = generate_pair(&format!("ui/{}.rpak", name));
+                    ret.insert(pair.0, pair.1);
+                }
             }
             _ => {}
         });

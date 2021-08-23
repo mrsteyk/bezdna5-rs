@@ -35,6 +35,16 @@ fn apex(rpak: &rpak::apex::RPakFile, guid_name: &HashMap<u64, String>) {
     let header = &rpak.header;
     println!("{} | {}\n", header.patches_num, header.is_compressed());
 
+    println!("unk54: {:#?}\n", rpak.unk54);
+    println!("relationship: {:#?}\n", rpak.relationship);
+    println!("unk60: {:#?}\n", rpak.unk60);
+    println!("unk64: {:#?}\n", rpak.unk64);
+    println!("unk68: {:#?}\n", rpak.unk68);
+    println!("unk6c: {:#?}\n", rpak.unk6c);
+    println!("unk70: {:#?}\n", rpak.unk70);
+
+    println!("PatchShit: {:#?}\n", rpak.patch_shit);
+
     println!("{:#?}", header);
 
     println!(
@@ -80,61 +90,61 @@ fn apex(rpak: &rpak::apex::RPakFile, guid_name: &HashMap<u64, String>) {
 
         match file.get_ext() {
             "ui" => {
-                let rui = file
+                if let Some(rui) = file
                     .as_any()
                     .downcast_ref::<rpak::apex::filetypes::rui::RUI>()
-                    .unwrap();
+                {
+                    //println!("{}.{:016X}.ui | {}", rui.name, rui.get_guid(), real_name);
 
-                //println!("{}.{:016X}.ui | {}", rui.name, rui.get_guid(), real_name);
+                    println!("\tDesc@{:016X}", rui.get_desc_off());
+                    println!("\tUnk1@{:016X}", rui.unk1.2);
+                    println!("\tUnk2@{:016X}", rui.unk2.2);
 
-                println!("\tDesc@{:016X}", rui.get_desc_off());
-                println!("\tUnk1@{:016X}", rui.unk1.2);
-                println!("\tUnk2@{:016X}", rui.unk2.2);
-
-                println!("\tArgClusters[{}]", rui.arg_clusters.len());
-                for cluster in &rui.arg_clusters {
-                    println!("\t\t{:?}", cluster);
-                }
-                println!("\tArgs[{}]", rui.args.len());
-                for arg in &rui.args {
-                    println!("\t\t{:?}", arg);
+                    println!("\tArgClusters[{}]", rui.arg_clusters.len());
+                    for cluster in &rui.arg_clusters {
+                        println!("\t\t{:?}", cluster);
+                    }
+                    println!("\tArgs[{}]", rui.args.len());
+                    for arg in &rui.args {
+                        println!("\t\t{:?}", arg);
+                    }
                 }
             }
-            // "dtbl" => {
-            //     let dtbl = file
-            //         .as_any()
-            //         .downcast_ref::<rpak::apex::filetypes::dtbl::DataTable>()
-            //         .unwrap();
+            "dtbl" => {
+                if let Some(dtbl) = file
+                    .as_any()
+                    .downcast_ref::<rpak::apex::filetypes::dtbl::DataTable>()
+                {
+                    print!("\t");
 
-            //     print!("\t");
+                    for column in &dtbl.column_names {
+                        print!("{}\t", column);
+                    }
 
-            //     for column in &dtbl.column_names {
-            //         print!("{}\t", column);
-            //     }
+                    println!();
 
-            //     println!();
+                    for row in &dtbl.data {
+                        print!("\t");
+                        for col in row {
+                            match col {
+                                ColumnData::String(v) => print!("\"{}\"", v),
+                                ColumnData::Asset(v) => print!("$\"{}\"", v),
+                                ColumnData::AssetNoPreCache(v) => print!("$\"{}\"", v),
 
-            //     for row in &dtbl.data {
-            //         print!("\t");
-            //         for col in row {
-            //             match col {
-            //                 ColumnData::String(v) => print!("\"{}\"", v),
-            //                 ColumnData::Asset(v) => print!("$\"{}\"", v),
-            //                 ColumnData::AssetNoPreCache(v) => print!("$\"{}\"", v),
+                                ColumnData::Bool(v) => print!("{}", v),
+                                ColumnData::Float(v) => print!("{}", v),
+                                ColumnData::Int(v) => print!("{}", v),
 
-            //                 ColumnData::Bool(v) => print!("{}", v),
-            //                 ColumnData::Float(v) => print!("{}", v),
-            //                 ColumnData::Int(v) => print!("{}", v),
+                                ColumnData::Vector(v) => print!("{:?}", v),
 
-            //                 ColumnData::Vector(v) => print!("{:?}", v),
-
-            //                 ColumnData::Invalid(v) => todo!("Invalid: {}", v),
-            //             }
-            //             print!("\t");
-            //         }
-            //         println!();
-            //     }
-            // }
+                                ColumnData::Invalid(v) => todo!("Invalid: {}", v),
+                            }
+                            print!("\t");
+                        }
+                        println!();
+                    }
+                }
+            }
             // "stgs" => {
             //     let stgs = file
             //         .as_any()

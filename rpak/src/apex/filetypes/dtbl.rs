@@ -93,6 +93,8 @@ impl DataTable {
     ) -> Result<Self, std::io::Error> {
         cursor.seek(SeekFrom::Start(generic.get_desc_off()))?;
 
+        assert_eq!(generic.get_desc_size(), 0x28, "Wha?");
+
         let start_pos = cursor.stream_position()?;
 
         let column_num = cursor.read_u32::<LE>()?;
@@ -116,6 +118,8 @@ impl DataTable {
 
         assert_eq!(cursor.stream_position()? - start_pos, 0x28, "я датаеблан");
 
+        // println!("{:X}[{:X}] | {:X} | {}x{} | {:X} | {:X}", generic.get_desc_off(), generic.get_desc_size(), start_pos, column_num, row_num, columns_seek, rows_seek);
+
         cursor.seek(SeekFrom::Start(columns_seek))?;
         let columns = {
             let mut ret = Vec::<Column>::with_capacity(column_num as usize);
@@ -125,13 +129,14 @@ impl DataTable {
                     let off = cursor.read_u32::<LE>()?;
                     seeks[id as usize] + off as u64
                 };
-                let unk8 = cursor.read_u64::<LE>()?;
+                // TODO: s3 switch??? this is peak stupid tbh...
+                // let unk8 = cursor.read_u64::<LE>()?;
                 let typ = cursor.read_u32::<LE>()?;
                 let offset = cursor.read_u32::<LE>()?;
 
                 ret.push(Column {
                     unk0_seek,
-                    unk8,
+                    unk8: 0,
                     typ,
                     offset,
                 })

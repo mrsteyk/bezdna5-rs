@@ -1,4 +1,8 @@
-use std::{fs::File, io::{BufReader, Read, Seek, SeekFrom}, path::Path};
+use std::{
+    fs::File,
+    io::{BufReader, Read, Seek, SeekFrom},
+    path::Path,
+};
 
 use rpak::{apex::RPakHeader, decomp::decompress};
 
@@ -24,7 +28,8 @@ fn main() {
                 &mut vec,
                 header.size_decompressed as usize,
                 rpak::HEADER_SIZE_APEX,
-            ).unwrap();
+            )
+            .unwrap();
             // TODO: fix header...
             d[..rpak::HEADER_SIZE_APEX].clone_from_slice(&vec[..rpak::HEADER_SIZE_APEX]);
             d

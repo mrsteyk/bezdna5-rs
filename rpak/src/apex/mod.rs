@@ -2,8 +2,8 @@ use std::cell::{RefCell, RefMut};
 use std::io::{Cursor, Read, Seek, SeekFrom};
 use std::rc::Rc;
 
-use byteorder::{ReadBytesExt, LE};
 use crate::NaiveDateTime;
+use byteorder::{ReadBytesExt, LE};
 
 use crate::decomp::decompress;
 use crate::util::string_from_buf;
@@ -40,7 +40,7 @@ pub struct RPakHeader {
     pub unk52: u16,
     pub unk54: u32,
     pub num_files: u32,
-    pub unk5c: u32,
+    pub relationship: u32,
 
     pub unk60: u32,
     pub unk64: u32,
@@ -80,7 +80,7 @@ impl RPakHeader {
 
             timestamp: {
                 let file_time = cursor.read_u64::<LE>()?;
-                let unix = (file_time/10000000) - 11644473600;
+                let unix = (file_time / 10000000) - 11644473600;
 
                 NaiveDateTime::from_timestamp(unix as i64, 0)
             },
@@ -104,7 +104,7 @@ impl RPakHeader {
 
             unk54: cursor.read_u32::<LE>()?,
             num_files: cursor.read_u32::<LE>()?,
-            unk5c: cursor.read_u32::<LE>()?,
+            relationship: cursor.read_u32::<LE>()?,
 
             unk60: cursor.read_u32::<LE>()?,
             unk64: cursor.read_u32::<LE>()?,
@@ -125,6 +125,14 @@ impl RPakHeader {
     }
 }
 
+#[derive(Debug)]
+pub struct PatchShit {
+    pub unk_start: u64,
+
+    pub unk_16: Vec<(u64, u64)>,
+    pub unk_2: Vec<u16>,
+}
+
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct RPakFile {
@@ -142,6 +150,16 @@ pub struct RPakFile {
 
     #[derivative(Debug = "ignore")]
     pub seeks: Vec<u64>,
+
+    pub unk54: Vec<(u32, u32)>,
+    pub relationship: Vec<(u32, u32)>,
+    pub unk60: Vec<u32>,
+    pub unk64: Vec<u32>,
+    pub unk68: Vec<u8>,
+    pub unk6c: Vec<(u64, u64)>,
+    pub unk70: Vec<(u64, u64, u64)>,
+
+    pub patch_shit: Option<PatchShit>,
 }
 
 impl crate::RPakFile for RPakFile {
@@ -178,9 +196,9 @@ impl RPakFile {
     pub fn read<R: Read + Seek + ReadBytesExt>(cursor: &mut R) -> Result<Self, crate::RPakError> {
         let header = RPakHeader::read(cursor)?;
 
-        if header.patches_num != 0 {
-            todo!("Part RPak")
-        }
+        // if header.patches_num != 0 {
+        //     todo!("Part RPak")
+        // }
         if header.unk74 != 0 {
             todo!()
         }
@@ -204,9 +222,30 @@ impl RPakFile {
         };
 
         decompressed.seek(SeekFrom::Start(crate::HEADER_SIZE_APEX as u64))?;
+        let patch_shit = if header.patches_num != 0 {
+            Some(PatchShit {
+                unk_start: decompressed.read_u64::<LE>()?,
+
+                unk_16: (0..header.patches_num)
+                    .map(|_| {
+                        (
+                            decompressed.read_u64::<LE>().unwrap(),
+                            decompressed.read_u64::<LE>().unwrap(),
+                        )
+                    })
+                    .collect(),
+                unk_2: (0..header.patches_num)
+                    .map(|_| decompressed.read_u16::<LE>().unwrap())
+                    .collect(),
+            })
+        } else {
+            None
+        };
+
+        let starpak_start = decompressed.stream_position()?;
         let starpak = string_from_buf(&mut decompressed);
 
-        let starpak_skipped = crate::HEADER_SIZE_APEX as u64 + header.starpak_len as u64;
+        let starpak_skipped = starpak_start + header.starpak_len as u64;
         decompressed.seek(SeekFrom::Start(starpak_skipped))?;
         let starpak_opt = {
             let tmp = string_from_buf(&mut decompressed);
@@ -225,28 +264,77 @@ impl RPakFile {
         let data_chunks = DataChunk::parse(&mut decompressed, header.data_chunks_num)?;
 
         let data_chunks_skipped = sections_skipped + (12 * header.data_chunks_num as u64);
-        // unk54 here
+        // unk54 here (8)
+        decompressed.seek(SeekFrom::Start(data_chunks_skipped))?;
+        let unk54: Vec<(u32, u32)> = (0..header.unk54)
+            .map(|_| {
+                (
+                    decompressed.read_u32::<LE>().unwrap(),
+                    decompressed.read_u32::<LE>().unwrap(),
+                )
+            })
+            .collect();
 
         let unk54_skipped = data_chunks_skipped + (8 * header.unk54 as u64);
         // parsing files is moved so we can get juicy file offsets
 
         let file_entries_skipped = unk54_skipped + (0x50 * header.num_files as u64);
-        // unk5c here
+        // unk5c here (8)
+        decompressed.seek(SeekFrom::Start(file_entries_skipped))?;
+        let relationship: Vec<(u32, u32)> = (0..header.relationship)
+            .map(|_| {
+                (
+                    decompressed.read_u32::<LE>().unwrap(),
+                    decompressed.read_u32::<LE>().unwrap(),
+                )
+            })
+            .collect();
 
-        let unk5c_skipped = file_entries_skipped + (8 * header.unk5c as u64);
-        // unk60 here
+        let unk5c_skipped = file_entries_skipped + (8 * header.relationship as u64);
+        // unk60 here (4)
+        decompressed.seek(SeekFrom::Start(unk5c_skipped))?;
+        let unk60: Vec<u32> = (0..header.unk60)
+            .map(|_| decompressed.read_u32::<LE>().unwrap())
+            .collect();
 
         let unk60_skipped = unk5c_skipped + (4 * header.unk60 as u64);
-        // unk64 here
+        // unk64 here (4)
+        decompressed.seek(SeekFrom::Start(unk60_skipped))?;
+        let unk64: Vec<u32> = (0..header.unk64)
+            .map(|_| decompressed.read_u32::<LE>().unwrap())
+            .collect();
 
         let unk64_skipped = unk60_skipped + (4 * header.unk64 as u64);
-        // unk68 here
+        // unk68 here (1)
+        decompressed.seek(SeekFrom::Start(unk64_skipped))?;
+        let unk68: Vec<u8> = (0..header.unk68)
+            .map(|_| decompressed.read_u8().unwrap())
+            .collect();
 
         let unk68_skipped = unk64_skipped + header.unk68 as u64;
-        // unk6c here
+        // unk6c here (16)
+        decompressed.seek(SeekFrom::Start(unk68_skipped))?;
+        let unk6c: Vec<(u64, u64)> = (0..header.unk6c)
+            .map(|_| {
+                (
+                    decompressed.read_u64::<LE>().unwrap(),
+                    decompressed.read_u64::<LE>().unwrap(),
+                )
+            })
+            .collect();
 
         let unk6c_skipped = unk68_skipped + (16 * header.unk6c as u64);
-        // unk70 here
+        // unk70 here (24)
+        decompressed.seek(SeekFrom::Start(unk6c_skipped))?;
+        let unk70: Vec<(u64, u64, u64)> = (0..header.unk70)
+            .map(|_| {
+                (
+                    decompressed.read_u64::<LE>().unwrap(),
+                    decompressed.read_u64::<LE>().unwrap(),
+                    decompressed.read_u64::<LE>().unwrap(),
+                )
+            })
+            .collect();
 
         let unk70_skipped = unk6c_skipped + (24 * header.unk70 as u64);
 
@@ -268,38 +356,43 @@ impl RPakFile {
             let generic = FileGeneric::read(&mut decompressed, &seeks).unwrap();
             // mb move the actual parsing?
             let bak_pos = decompressed.stream_position()?;
-            let spec: Rc<dyn crate::FileEntry> = match generic.extension.as_str() {
-                "txtr" => Rc::new(
-                    filetypes::txtr::Texture::ctor(&mut decompressed, &seeks, generic).unwrap(),
-                ),
-                "matl" => Rc::new(
-                    filetypes::matl::Material::ctor(&mut decompressed, &seeks, generic).unwrap(),
-                ),
-                "ui" => {
-                    Rc::new(filetypes::rui::RUI::ctor(&mut decompressed, &seeks, generic).unwrap())
+            let spec: Rc<dyn crate::FileEntry> = if header.patches_num == 0 {
+                match generic.extension.as_str() {
+                    "txtr" => Rc::new(
+                        filetypes::txtr::Texture::ctor(&mut decompressed, &seeks, generic).unwrap(),
+                    ),
+                    "matl" => Rc::new(
+                        filetypes::matl::Material::ctor(&mut decompressed, &seeks, generic)
+                            .unwrap(),
+                    ),
+                    "ui" => Rc::new(
+                        filetypes::rui::RUI::ctor(&mut decompressed, &seeks, generic).unwrap(),
+                    ),
+                    "uimg" => Rc::new(
+                        filetypes::uimg::UImg::ctor(&mut decompressed, &seeks, generic).unwrap(),
+                    ),
+                    "dtbl" => Rc::new(
+                        filetypes::dtbl::DataTable::ctor(&mut decompressed, &seeks, generic)
+                            .unwrap(),
+                    ),
+                    // "stgs" => Rc::new(
+                    //     filetypes::stgs::Settings::ctor(&mut decompressed, &seeks, generic).unwrap(),
+                    // ),
+                    // "stlt" => Rc::new(
+                    //     filetypes::stlt::SettingsLayout::ctor(&mut decompressed, &seeks, generic)
+                    //         .unwrap(),
+                    // ),
+                    "mdl_" => Rc::new(
+                        filetypes::rmdl::Model::ctor(&mut decompressed, &seeks, generic).unwrap(),
+                    ),
+                    "arig" => Rc::new(
+                        filetypes::arig::AnimationRig::ctor(&mut decompressed, &seeks, generic)
+                            .unwrap(),
+                    ),
+                    _ => Rc::new(generic),
                 }
-                "uimg" => Rc::new(
-                    filetypes::uimg::UImg::ctor(&mut decompressed, &seeks, generic).unwrap(),
-                ),
-                // "dtbl" => Rc::new(
-                //     filetypes::dtbl::DataTable::ctor(&mut decompressed, &seeks, generic).unwrap(),
-                // ),
-                // "stgs" => Rc::new(
-                //     filetypes::stgs::Settings::ctor(&mut decompressed, &seeks, generic).unwrap(),
-                // ),
-                // "stlt" => Rc::new(
-                //     filetypes::stlt::SettingsLayout::ctor(&mut decompressed, &seeks, generic)
-                //         .unwrap(),
-                // ),
-                "mdl_" => Rc::new(
-                    filetypes::rmdl::Model::ctor(&mut decompressed, &seeks, generic)
-                        .unwrap(),
-                ),
-                "arig" => Rc::new(
-                    filetypes::arig::AnimationRig::ctor(&mut decompressed, &seeks, generic)
-                        .unwrap(),
-                ),
-                _ => Rc::new(generic),
+            } else {
+                Rc::new(generic)
             };
             decompressed.seek(SeekFrom::Start(bak_pos))?;
             files.push(spec);
@@ -318,6 +411,16 @@ impl RPakFile {
             data_chunks,
 
             seeks,
+
+            unk54,
+            relationship,
+            unk60,
+            unk64,
+            unk68,
+            unk6c,
+            unk70,
+
+            patch_shit,
         })
     }
 }
