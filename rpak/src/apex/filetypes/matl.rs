@@ -80,7 +80,7 @@ impl Material {
         cursor: &mut R,
         seeks: &[u64],
         generic: super::FileGeneric,
-    ) -> Result<Self, std::io::Error> {
+    ) -> Result<Self, MaterialError> {
         cursor.seek(SeekFrom::Start(generic.get_desc_off()))?;
 
         let _unk0 = cursor.read_u64::<LE>()?;

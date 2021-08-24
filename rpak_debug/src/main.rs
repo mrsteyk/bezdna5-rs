@@ -1,11 +1,11 @@
-use std::{collections::HashMap, fs::File, io::{BufRead, BufReader}, path::Path};
-
-use rpak::{
-    apex::{
-        filetypes::{dtbl::ColumnData},
-    },
-    FileEntry,
+use std::{
+    collections::HashMap,
+    fs::File,
+    io::{BufRead, BufReader},
+    path::Path,
 };
+
+use rpak::{apex::filetypes::dtbl::ColumnData, FileEntry};
 
 extern crate rpak;
 

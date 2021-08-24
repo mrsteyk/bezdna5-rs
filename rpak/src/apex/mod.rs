@@ -420,123 +420,128 @@ impl RPakFile {
 
     pub fn parse_files(&mut self, options: &ParseFileOptions) -> Result<(), crate::RPakError> {
         // this is retarded...
-        let files_with_errors: Result<Vec<_>, _> = self.files.iter().map(|file_ref| -> Result<Rc<dyn crate::FileEntry>, crate::RPakError> {
-            if let Some(generic) = file_ref.as_any().downcast_ref::<FileGeneric>() {
-                // TODO: macros, mb?
-                Ok(match generic.extension.as_str() {
-                    "txtr" => {
-                        if options.txtr {
-                            Rc::new(filetypes::txtr::Texture::ctor(
-                                &mut *self.get_decompressed(),
-                                &self.seeks,
-                                generic.clone(),
-                            )?)
-                        } else {
-                            file_ref.clone()
-                        }
+        let files_with_errors: Result<Vec<_>, _> = self
+            .files
+            .iter()
+            .map(
+                |file_ref| -> Result<Rc<dyn crate::FileEntry>, crate::RPakError> {
+                    if let Some(generic) = file_ref.as_any().downcast_ref::<FileGeneric>() {
+                        // TODO: macros, mb?
+                        Ok(match generic.extension.as_str() {
+                            "txtr" => {
+                                if options.txtr {
+                                    Rc::new(filetypes::txtr::Texture::ctor(
+                                        &mut *self.get_decompressed(),
+                                        &self.seeks,
+                                        generic.clone(),
+                                    )?)
+                                } else {
+                                    file_ref.clone()
+                                }
+                            }
+                            "matl" => {
+                                if options.matl {
+                                    Rc::new(filetypes::matl::Material::ctor(
+                                        &mut *self.get_decompressed(),
+                                        &self.seeks,
+                                        generic.clone(),
+                                    )?)
+                                } else {
+                                    file_ref.clone()
+                                }
+                            }
+                            "ui" => {
+                                if options.rui {
+                                    Rc::new(filetypes::rui::RUI::ctor(
+                                        &mut *self.get_decompressed(),
+                                        &self.seeks,
+                                        generic.clone(),
+                                    )?)
+                                } else {
+                                    file_ref.clone()
+                                }
+                            }
+                            "uimg" => {
+                                if options.uimg {
+                                    Rc::new(filetypes::uimg::UImg::ctor(
+                                        &mut *self.get_decompressed(),
+                                        &self.seeks,
+                                        generic.clone(),
+                                    )?)
+                                } else {
+                                    file_ref.clone()
+                                }
+                            }
+                            "dtbl" => {
+                                if options.dtbl {
+                                    Rc::new(filetypes::dtbl::DataTable::ctor(
+                                        &mut *self.get_decompressed(),
+                                        &self.seeks,
+                                        generic.clone(),
+                                    )?)
+                                } else {
+                                    file_ref.clone()
+                                }
+                            }
+                            "stgs" => {
+                                if options.stgs {
+                                    Rc::new(filetypes::stgs::Settings::ctor(
+                                        &mut *self.get_decompressed(),
+                                        &self.seeks,
+                                        (*generic).clone(),
+                                    )?)
+                                } else {
+                                    file_ref.clone()
+                                }
+                            }
+                            "stlt" => {
+                                if options.stlt {
+                                    Rc::new(filetypes::stlt::SettingsLayout::ctor(
+                                        &mut *self.get_decompressed(),
+                                        &self.seeks,
+                                        (*generic).clone(),
+                                    )?)
+                                } else {
+                                    file_ref.clone()
+                                }
+                            }
+                            "mdl_" => {
+                                if options.rmdl {
+                                    Rc::new(filetypes::rmdl::Model::ctor(
+                                        &mut *self.get_decompressed(),
+                                        &self.seeks,
+                                        (*generic).clone(),
+                                    )?)
+                                } else {
+                                    file_ref.clone()
+                                }
+                            }
+                            "arig" => {
+                                if options.arig {
+                                    Rc::new(filetypes::arig::AnimationRig::ctor(
+                                        &mut *self.get_decompressed(),
+                                        &self.seeks,
+                                        (*generic).clone(),
+                                    )?)
+                                } else {
+                                    file_ref.clone()
+                                }
+                            }
+                            _ => file_ref.clone(),
+                        })
+                    } else {
+                        Ok(file_ref.clone())
                     }
-                    "matl" => {
-                        if options.matl {
-                            Rc::new(filetypes::matl::Material::ctor(
-                                &mut *self.get_decompressed(),
-                                &self.seeks,
-                                generic.clone(),
-                            )?)
-                        } else {
-                            file_ref.clone()
-                        }
-                    }
-                    "ui" => {
-                        if options.rui {
-                            Rc::new(filetypes::rui::RUI::ctor(
-                                &mut *self.get_decompressed(),
-                                &self.seeks,
-                                generic.clone(),
-                            )?)
-                        } else {
-                            file_ref.clone()
-                        }
-                    }
-                    "uimg" => {
-                        if options.uimg {
-                            Rc::new(filetypes::uimg::UImg::ctor(
-                                &mut *self.get_decompressed(),
-                                &self.seeks,
-                                generic.clone(),
-                            )?)
-                        } else {
-                            file_ref.clone()
-                        }
-                    }
-                    "dtbl" => {
-                        if options.dtbl {
-                            Rc::new(filetypes::dtbl::DataTable::ctor(
-                                &mut *self.get_decompressed(),
-                                &self.seeks,
-                                generic.clone(),
-                            )?)
-                        } else {
-                            file_ref.clone()
-                        }
-                    }
-                    "stgs" => {
-                        if options.stgs {
-                            Rc::new(filetypes::stgs::Settings::ctor(
-                                &mut *self.get_decompressed(),
-                                &self.seeks,
-                                (*generic).clone(),
-                            )?)
-                        } else {
-                            file_ref.clone()
-                        }
-                    }
-                    "stlt" => {
-                        if options.stlt {
-                            Rc::new(filetypes::stlt::SettingsLayout::ctor(
-                                &mut *self.get_decompressed(),
-                                &self.seeks,
-                                (*generic).clone(),
-                            )?)
-                        } else {
-                            file_ref.clone()
-                        }
-                    }
-                    "mdl_" => {
-                        if options.rmdl {
-                            Rc::new(filetypes::rmdl::Model::ctor(
-                                &mut *self.get_decompressed(),
-                                &self.seeks,
-                                (*generic).clone(),
-                            )?)
-                        } else {
-                            file_ref.clone()
-                        }
-                    }
-                    "arig" => {
-                        if options.arig {
-                            Rc::new(filetypes::arig::AnimationRig::ctor(
-                                &mut *self.get_decompressed(),
-                                &self.seeks,
-                                (*generic).clone(),
-                            )?)
-                        } else {
-                            file_ref.clone()
-                        }
-                    }
-                    _ => file_ref.clone(),
-                })
-            } else {
-                Ok(file_ref.clone())
-            }
-        }).collect();
+                },
+            )
+            .collect();
 
-        
         match files_with_errors {
             Err(v) => Err(v),
             Ok(v) => {
                 self.files = v;
                 Ok(())
-            },
+            }
         }
     }
 }
