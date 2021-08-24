@@ -4,6 +4,29 @@ use byteorder::{ReadBytesExt, LE};
 
 use crate::FileEntry;
 
+#[derive(Debug)]
+pub enum DataTableError {
+    IOError(std::io::Error),
+}
+
+impl From<std::io::Error> for DataTableError {
+    fn from(v: std::io::Error) -> Self {
+        Self::IOError(v)
+    }
+}
+
+impl From<DataTableError> for crate::RPakError {
+    fn from(item: DataTableError) -> Self {
+        Self::FileTypeParseError((
+            "dtbl",
+            Box::new(match item {
+                DataTableError::IOError(v) => Self::IOError(v),
+                _ => crate::RPakError::Shiz("Unknown error!".to_string()),
+            }),
+        ))
+    }
+}
+
 // desc
 // column_num: u32 // 0x0 - column count
 // row_num: u32 // 0x4 - row count
@@ -90,7 +113,7 @@ impl DataTable {
         cursor: &mut R,
         seeks: &[u64],
         generic: super::FileGeneric,
-    ) -> Result<Self, std::io::Error> {
+    ) -> Result<Self, DataTableError> {
         cursor.seek(SeekFrom::Start(generic.get_desc_off()))?;
 
         assert_eq!(generic.get_desc_size(), 0x28, "Wha?");

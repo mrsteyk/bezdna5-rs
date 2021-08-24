@@ -14,6 +14,8 @@ pub enum RPakError {
     IOError(std::io::Error),
     DecompError(crate::decomp::Error),
     Shiz(String),
+
+    FileTypeParseError((&'static str, Box<RPakError>)),
 }
 
 impl From<std::io::Error> for RPakError {

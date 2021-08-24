@@ -4,6 +4,29 @@ use byteorder::{ReadBytesExt, LE};
 
 use crate::FileEntry;
 
+#[derive(Debug)]
+pub enum UIMGError {
+    IOError(std::io::Error),
+}
+
+impl From<std::io::Error> for UIMGError {
+    fn from(v: std::io::Error) -> Self {
+        Self::IOError(v)
+    }
+}
+
+impl From<UIMGError> for crate::RPakError {
+    fn from(item: UIMGError) -> Self {
+        Self::FileTypeParseError((
+            "uimg",
+            Box::new(match item {
+                UIMGError::IOError(v) => Self::IOError(v),
+                _ => crate::RPakError::Shiz("Unknown error!".to_string()),
+            }),
+        ))
+    }
+}
+
 // desc
 // dims: (u16, u16) // 0x8 - total dimensions
 // textures_num: u16 // 0xC - textures num?
@@ -78,7 +101,7 @@ impl UImg {
         cursor: &mut R,
         seeks: &[u64],
         generic: super::FileGeneric,
-    ) -> Result<Self, std::io::Error> {
+    ) -> Result<Self, UIMGError> {
         cursor.seek(SeekFrom::Start(generic.get_desc_off()))?;
 
         let start_pos = cursor.stream_position()?;

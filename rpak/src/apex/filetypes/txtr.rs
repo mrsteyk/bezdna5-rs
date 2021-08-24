@@ -4,6 +4,29 @@ use byteorder::{ReadBytesExt, LE};
 
 use crate::FileEntry;
 
+#[derive(Debug)]
+pub enum TextureError {
+    IOError(std::io::Error),
+}
+
+impl From<std::io::Error> for TextureError {
+    fn from(v: std::io::Error) -> Self {
+        Self::IOError(v)
+    }
+}
+
+impl From<TextureError> for crate::RPakError {
+    fn from(item: TextureError) -> Self {
+        Self::FileTypeParseError((
+            "txtr",
+            Box::new(match item {
+                TextureError::IOError(v) => Self::IOError(v),
+                _ => crate::RPakError::Shiz("Unknown error!".to_string()),
+            }),
+        ))
+    }
+}
+
 pub const TEXTURE_ALGOS: [&str; 64] = [
     "DXT1",    // 0
     "DXT1",    // 1
@@ -219,7 +242,7 @@ impl Texture {
         cursor: &mut R,
         _seeks: &[u64],
         generic: super::FileGeneric,
-    ) -> Result<Self, std::io::Error> {
+    ) -> Result<Self, TextureError> {
         cursor.seek(SeekFrom::Start(generic.get_desc_off()))?;
 
         let start_pos = cursor.stream_position()?;

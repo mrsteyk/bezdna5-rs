@@ -132,8 +132,9 @@ impl DataChunk {
 }
 
 /// This trait represents generic workflow with all RPakFiles
-pub trait RPakFile: Debug {
+pub trait RPakFileT: Debug {
     fn as_any(&self) -> &dyn Any;
+    fn as_any_mut(&mut self) -> &mut dyn Any;
 
     fn is_compressed(&self) -> bool;
     fn should_lla(&self) -> bool;
@@ -149,7 +150,7 @@ pub trait RPakFile: Debug {
 /// Takes rpak file and parses it into a viable format
 pub fn parse_rpak<R: Read + Seek + ReadBytesExt>(
     cursor: &mut R,
-) -> Result<Box<dyn RPakFile>, RPakError> {
+) -> Result<Box<dyn RPakFileT>, RPakError> {
     match get_rpak_version_cursor(cursor) {
         // RPakVersion::TF2 => unimplemented!(),
         RPakVersion::APEX => match apex::RPakFile::read(cursor) {
@@ -196,7 +197,7 @@ fn generate_pair(string: &str) -> (u64, String) {
 
 /// Try to populate the predicted names `HashMap`
 #[allow(unused_variables)]
-pub fn predict_names(rpak_file: &dyn RPakFile, file_stem: String) -> HashMap<u64, String> {
+pub fn predict_names(rpak_file: &dyn RPakFileT, file_stem: String) -> HashMap<u64, String> {
     let mut ret = HashMap::<u64, String>::new();
 
     if file_stem.ends_with("_loadscreen") {

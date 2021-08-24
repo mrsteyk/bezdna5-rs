@@ -14,7 +14,7 @@ pub mod stlt;
 pub mod txtr;
 pub mod uimg;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FileGeneric {
     pub guid: u64,
     pub desc: Descriptor,

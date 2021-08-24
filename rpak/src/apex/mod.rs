@@ -2,7 +2,7 @@ use std::cell::{RefCell, RefMut};
 use std::io::{Cursor, Read, Seek, SeekFrom};
 use std::rc::Rc;
 
-use crate::NaiveDateTime;
+use crate::{NaiveDateTime, RPakFileT};
 use byteorder::{ReadBytesExt, LE};
 
 use crate::decomp::decompress;
@@ -12,6 +12,36 @@ use crate::{DataChunk, SectionDesc};
 use self::filetypes::FileGeneric;
 
 pub mod filetypes;
+
+#[derive(Debug)]
+pub struct ParseFileOptions {
+    pub arig: bool,
+    // pub aseq: bool,
+    pub dtbl: bool,
+    pub matl: bool,
+    pub rmdl: bool,
+    pub rui: bool,
+    pub stgs: bool,
+    pub stlt: bool,
+    pub txtr: bool,
+    pub uimg: bool,
+}
+
+impl Default for ParseFileOptions {
+    fn default() -> Self {
+        Self {
+            arig: false,
+            dtbl: false,
+            matl: false,
+            rmdl: false,
+            rui: false,
+            stgs: false,
+            stlt: false,
+            txtr: false,
+            uimg: false,
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct RPakHeader {
@@ -162,8 +192,11 @@ pub struct RPakFile {
     pub patch_shit: Option<PatchShit>,
 }
 
-impl crate::RPakFile for RPakFile {
+impl crate::RPakFileT for RPakFile {
     fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
     }
 
@@ -351,55 +384,16 @@ impl RPakFile {
 
         // populate files array
         decompressed.seek(SeekFrom::Start(unk54_skipped))?;
-        let mut files = Vec::<Rc<dyn crate::FileEntry>>::with_capacity(header.num_files as usize);
-        for _ in 0..header.num_files {
-            let generic = FileGeneric::read(&mut decompressed, &seeks).unwrap();
-            // mb move the actual parsing?
-            let bak_pos = decompressed.stream_position()?;
-            let spec: Rc<dyn crate::FileEntry> = if header.patches_num == 0 {
-                match generic.extension.as_str() {
-                    "txtr" => Rc::new(
-                        filetypes::txtr::Texture::ctor(&mut decompressed, &seeks, generic).unwrap(),
-                    ),
-                    "matl" => Rc::new(
-                        filetypes::matl::Material::ctor(&mut decompressed, &seeks, generic)
-                            .unwrap(),
-                    ),
-                    "ui" => Rc::new(
-                        filetypes::rui::RUI::ctor(&mut decompressed, &seeks, generic).unwrap(),
-                    ),
-                    "uimg" => Rc::new(
-                        filetypes::uimg::UImg::ctor(&mut decompressed, &seeks, generic).unwrap(),
-                    ),
-                    "dtbl" => Rc::new(
-                        filetypes::dtbl::DataTable::ctor(&mut decompressed, &seeks, generic)
-                            .unwrap(),
-                    ),
-                    // "stgs" => Rc::new(
-                    //     filetypes::stgs::Settings::ctor(&mut decompressed, &seeks, generic).unwrap(),
-                    // ),
-                    // "stlt" => Rc::new(
-                    //     filetypes::stlt::SettingsLayout::ctor(&mut decompressed, &seeks, generic)
-                    //         .unwrap(),
-                    // ),
-                    "mdl_" => Rc::new(
-                        filetypes::rmdl::Model::ctor(&mut decompressed, &seeks, generic).unwrap(),
-                    ),
-                    "arig" => Rc::new(
-                        filetypes::arig::AnimationRig::ctor(&mut decompressed, &seeks, generic)
-                            .unwrap(),
-                    ),
-                    _ => Rc::new(generic),
-                }
-            } else {
-                Rc::new(generic)
-            };
-            decompressed.seek(SeekFrom::Start(bak_pos))?;
-            files.push(spec);
-        }
+        let files: Vec<Rc<dyn crate::FileEntry>> = (0..header.num_files)
+            .map(|_| {
+                // if this ever produces an error - "I cri" (C)
+                let generic = FileGeneric::read(&mut decompressed, &seeks).unwrap();
+                Rc::new(generic) as Rc<dyn crate::FileEntry>
+            })
+            .collect();
 
         // We don't parse data just yet?...
-        Ok(RPakFile {
+        Ok(Self {
             header,
             decompressed: Rc::new(RefCell::new(decompressed)),
             data_start: unk70_skipped,
@@ -422,5 +416,127 @@ impl RPakFile {
 
             patch_shit,
         })
+    }
+
+    pub fn parse_files(&mut self, options: &ParseFileOptions) -> Result<(), crate::RPakError> {
+        // this is retarded...
+        let files_with_errors: Result<Vec<_>, _> = self.files.iter().map(|file_ref| -> Result<Rc<dyn crate::FileEntry>, crate::RPakError> {
+            if let Some(generic) = file_ref.as_any().downcast_ref::<FileGeneric>() {
+                // TODO: macros, mb?
+                Ok(match generic.extension.as_str() {
+                    "txtr" => {
+                        if options.txtr {
+                            Rc::new(filetypes::txtr::Texture::ctor(
+                                &mut *self.get_decompressed(),
+                                &self.seeks,
+                                generic.clone(),
+                            )?)
+                        } else {
+                            file_ref.clone()
+                        }
+                    }
+                    "matl" => {
+                        if options.matl {
+                            Rc::new(filetypes::matl::Material::ctor(
+                                &mut *self.get_decompressed(),
+                                &self.seeks,
+                                generic.clone(),
+                            )?)
+                        } else {
+                            file_ref.clone()
+                        }
+                    }
+                    "ui" => {
+                        if options.rui {
+                            Rc::new(filetypes::rui::RUI::ctor(
+                                &mut *self.get_decompressed(),
+                                &self.seeks,
+                                generic.clone(),
+                            )?)
+                        } else {
+                            file_ref.clone()
+                        }
+                    }
+                    "uimg" => {
+                        if options.uimg {
+                            Rc::new(filetypes::uimg::UImg::ctor(
+                                &mut *self.get_decompressed(),
+                                &self.seeks,
+                                generic.clone(),
+                            )?)
+                        } else {
+                            file_ref.clone()
+                        }
+                    }
+                    "dtbl" => {
+                        if options.dtbl {
+                            Rc::new(filetypes::dtbl::DataTable::ctor(
+                                &mut *self.get_decompressed(),
+                                &self.seeks,
+                                generic.clone(),
+                            )?)
+                        } else {
+                            file_ref.clone()
+                        }
+                    }
+                    "stgs" => {
+                        if options.stgs {
+                            Rc::new(filetypes::stgs::Settings::ctor(
+                                &mut *self.get_decompressed(),
+                                &self.seeks,
+                                (*generic).clone(),
+                            )?)
+                        } else {
+                            file_ref.clone()
+                        }
+                    }
+                    "stlt" => {
+                        if options.stlt {
+                            Rc::new(filetypes::stlt::SettingsLayout::ctor(
+                                &mut *self.get_decompressed(),
+                                &self.seeks,
+                                (*generic).clone(),
+                            )?)
+                        } else {
+                            file_ref.clone()
+                        }
+                    }
+                    "mdl_" => {
+                        if options.rmdl {
+                            Rc::new(filetypes::rmdl::Model::ctor(
+                                &mut *self.get_decompressed(),
+                                &self.seeks,
+                                (*generic).clone(),
+                            )?)
+                        } else {
+                            file_ref.clone()
+                        }
+                    }
+                    "arig" => {
+                        if options.arig {
+                            Rc::new(filetypes::arig::AnimationRig::ctor(
+                                &mut *self.get_decompressed(),
+                                &self.seeks,
+                                (*generic).clone(),
+                            )?)
+                        } else {
+                            file_ref.clone()
+                        }
+                    }
+                    _ => file_ref.clone(),
+                })
+            } else {
+                Ok(file_ref.clone())
+            }
+        }).collect();
+
+        
+        match files_with_errors {
+            Err(v) => Err(v),
+            Ok(v) => {
+                self.files = v;
+                Ok(())
+            },
+        }
     }
 }

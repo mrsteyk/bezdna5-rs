@@ -2,8 +2,30 @@ use std::io::{Read, Seek, SeekFrom};
 
 use byteorder::{ReadBytesExt, LE};
 
-//pub use crate::tf2::filetypes::matl::{TEXTURE_REFS, TEXTURE_REFS_SE2};
 use crate::{util::string_from_buf, FileEntry};
+
+#[derive(Debug)]
+pub enum MaterialError {
+    IOError(std::io::Error),
+}
+
+impl From<std::io::Error> for MaterialError {
+    fn from(v: std::io::Error) -> Self {
+        Self::IOError(v)
+    }
+}
+
+impl From<MaterialError> for crate::RPakError {
+    fn from(item: MaterialError) -> Self {
+        Self::FileTypeParseError((
+            "mtrl",
+            Box::new(match item {
+                MaterialError::IOError(v) => Self::IOError(v),
+                _ => crate::RPakError::Shiz("Unknown error!".to_string()),
+            }),
+        ))
+    }
+}
 
 #[derive(Debug)]
 pub struct Material {

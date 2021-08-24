@@ -1,28 +1,34 @@
-use std::{
-    collections::HashMap,
-    fs::File,
-    io::{BufRead, BufReader, Seek, SeekFrom},
-    path::Path,
-};
+use std::{collections::HashMap, fs::File, io::{BufRead, BufReader}, path::Path};
 
-use byteorder::{ReadBytesExt, LE};
 use rpak::{
     apex::{
-        self,
-        filetypes::{dtbl::ColumnData, stlt::SettingsItem},
+        filetypes::{dtbl::ColumnData},
     },
-    FileEntry, RPakFile,
+    FileEntry,
 };
 
 extern crate rpak;
 
 mod util;
 
-fn apex(rpak: &rpak::apex::RPakFile, guid_name: &HashMap<u64, String>) {
+fn apex(rpak: &mut rpak::apex::RPakFile, guid_name: &HashMap<u64, String>) {
     println!("Apex mode");
 
-    let decomp = rpak.decompressed.borrow();
-    let mut cursor = std::io::Cursor::new(decomp.get_ref().as_slice());
+    print!("Parsing files...");
+    rpak.parse_files(&rpak::apex::ParseFileOptions {
+        arig: true,
+        dtbl: true,
+        matl: true,
+        rmdl: true,
+        txtr: true,
+        uimg: true,
+        ..Default::default()
+    })
+    .expect("File parse failure");
+    println!("ok!");
+
+    // let decomp = rpak.decompressed.borrow();
+    // let mut cursor = std::io::Cursor::new(decomp.get_ref().as_slice());
 
     // // LOAD EARLY RPAK
     // let file = File::open(
@@ -254,9 +260,7 @@ fn main() {
         println!("{:#?}", rpak::apex::RPakHeader::read(cursor.get_mut()));
 
         match rpak::parse_rpak(cursor.get_mut()) {
-            Ok(rpak) => {
-                let drpak = rpak.as_any();
-
+            Ok(mut rpak) => {
                 // Borrow checker...
                 {
                     print!("Writing decompressed... ");
@@ -266,7 +270,7 @@ fn main() {
                 }
 
                 let guid_name = {
-                    let mut ret = rpak::predict_names(&*rpak, file_stem.to_owned());
+                    let mut ret = rpak::predict_names(rpak.as_ref(), file_stem.to_owned());
 
                     if args.len() > 2 {
                         let file = File::open(&args[2]).unwrap();
@@ -284,7 +288,7 @@ fn main() {
                     ret
                 };
 
-                if let Some(arpak) = drpak.downcast_ref::<rpak::apex::RPakFile>() {
+                if let Some(arpak) = rpak.as_any_mut().downcast_mut::<rpak::apex::RPakFile>() {
                     apex(arpak, &guid_name)
                 } else {
                     unreachable!()
