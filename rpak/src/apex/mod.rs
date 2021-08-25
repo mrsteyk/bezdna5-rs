@@ -25,6 +25,7 @@ pub struct ParseFileOptions {
     pub stlt: bool,
     pub txtr: bool,
     pub uimg: bool,
+    pub patch: bool,
 }
 
 impl Default for ParseFileOptions {
@@ -39,6 +40,7 @@ impl Default for ParseFileOptions {
             stlt: false,
             txtr: false,
             uimg: false,
+            patch: false,
         }
     }
 }
@@ -110,9 +112,13 @@ impl RPakHeader {
 
             timestamp: {
                 let file_time = cursor.read_u64::<LE>()?;
-                let unix = (file_time / 10000000) - 11644473600;
 
-                NaiveDateTime::from_timestamp(unix as i64, 0)
+                if file_time != 0 {
+                    let unix = (file_time / 10000000) - 11644473600;
+                    NaiveDateTime::from_timestamp(unix as i64, 0)
+                } else {
+                    NaiveDateTime::from_timestamp(0, 0)
+                }
             },
             unk10: cursor.read_u64::<LE>()?,
             size_disk: cursor.read_u64::<LE>()?,
@@ -181,7 +187,7 @@ pub struct RPakFile {
     #[derivative(Debug = "ignore")]
     pub seeks: Vec<u64>,
 
-    pub unk54: Vec<(u32, u32)>,
+    pub descriptors: Vec<(u32, u32)>,
     pub relationship: Vec<(u32, u32)>,
     pub unk60: Vec<u32>,
     pub unk64: Vec<u32>,
@@ -297,9 +303,9 @@ impl RPakFile {
         let data_chunks = DataChunk::parse(&mut decompressed, header.data_chunks_num)?;
 
         let data_chunks_skipped = sections_skipped + (12 * header.data_chunks_num as u64);
-        // unk54 here (8)
+        // unk54 aka "where descriptors are" here (8)
         decompressed.seek(SeekFrom::Start(data_chunks_skipped))?;
-        let unk54: Vec<(u32, u32)> = (0..header.unk54)
+        let descriptors: Vec<(u32, u32)> = (0..header.unk54)
             .map(|_| {
                 (
                     decompressed.read_u32::<LE>().unwrap(),
@@ -406,7 +412,7 @@ impl RPakFile {
 
             seeks,
 
-            unk54,
+            descriptors,
             relationship,
             unk60,
             unk64,
@@ -519,6 +525,17 @@ impl RPakFile {
                             "arig" => {
                                 if options.arig {
                                     Rc::new(filetypes::arig::AnimationRig::ctor(
+                                        &mut *self.get_decompressed(),
+                                        &self.seeks,
+                                        (*generic).clone(),
+                                    )?)
+                                } else {
+                                    file_ref.clone()
+                                }
+                            }
+                            "Ptch" => {
+                                if options.patch {
+                                    Rc::new(filetypes::ptch::Patch::ctor(
                                         &mut *self.get_decompressed(),
                                         &self.seeks,
                                         (*generic).clone(),

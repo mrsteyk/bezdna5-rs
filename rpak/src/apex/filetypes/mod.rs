@@ -7,6 +7,7 @@ type Descriptor = (u32, u32, u64);
 pub mod arig;
 pub mod dtbl;
 pub mod matl;
+pub mod ptch;
 pub mod rmdl;
 pub mod rui;
 pub mod stgs;

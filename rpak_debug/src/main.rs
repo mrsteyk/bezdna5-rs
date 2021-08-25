@@ -22,6 +22,7 @@ fn apex(rpak: &mut rpak::apex::RPakFile, guid_name: &HashMap<u64, String>) {
         rmdl: true,
         txtr: true,
         uimg: true,
+        patch: true,
         ..Default::default()
     })
     .expect("File parse failure");
@@ -41,7 +42,7 @@ fn apex(rpak: &mut rpak::apex::RPakFile, guid_name: &HashMap<u64, String>) {
     let header = &rpak.header;
     println!("{} | {}\n", header.patches_num, header.is_compressed());
 
-    println!("unk54: {:#?}\n", rpak.unk54);
+    println!("unk54: {:#?}\n", rpak.descriptors);
     println!("relationship: {:#?}\n", rpak.relationship);
     println!("unk60: {:#?}\n", rpak.unk60);
     println!("unk64: {:#?}\n", rpak.unk64);
