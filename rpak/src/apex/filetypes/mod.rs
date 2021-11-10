@@ -13,6 +13,7 @@ pub mod rui;
 pub mod stgs;
 pub mod stlt;
 pub mod txtr;
+pub mod uiia;
 pub mod uimg;
 
 #[derive(Debug, Clone)]

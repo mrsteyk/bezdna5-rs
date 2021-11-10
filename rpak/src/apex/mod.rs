@@ -25,6 +25,7 @@ pub struct ParseFileOptions {
     pub stlt: bool,
     pub txtr: bool,
     pub uimg: bool,
+    pub uiia: bool,
     pub patch: bool,
 }
 
@@ -40,6 +41,7 @@ impl Default for ParseFileOptions {
             stlt: false,
             txtr: false,
             uimg: false,
+            uiia: false,
             patch: false,
         }
     }
@@ -470,6 +472,17 @@ impl RPakFile {
                             "uimg" => {
                                 if options.uimg {
                                     Rc::new(filetypes::uimg::UImg::ctor(
+                                        &mut *self.get_decompressed(),
+                                        &self.seeks,
+                                        generic.clone(),
+                                    )?)
+                                } else {
+                                    file_ref.clone()
+                                }
+                            }
+                            "uiia" => {
+                                if options.uiia {
+                                    Rc::new(filetypes::uiia::UIImage::ctor(
                                         &mut *self.get_decompressed(),
                                         &self.seeks,
                                         generic.clone(),

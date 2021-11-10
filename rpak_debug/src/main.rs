@@ -22,6 +22,7 @@ fn apex(rpak: &mut rpak::apex::RPakFile, guid_name: &HashMap<u64, String>) {
         rmdl: true,
         txtr: true,
         uimg: true,
+        uiia: true, // New S11 hot shit, might explain why my builds had crusty as fuck main menu
         patch: true,
         ..Default::default()
     })
@@ -244,6 +245,15 @@ fn apex(rpak: &mut rpak::apex::RPakFile, guid_name: &HashMap<u64, String>) {
             // }
             _ => {}
         }
+    }
+
+    // debug ecksde
+    if rpak.files[0].get_ext() == "uiia" {
+        let uiia = rpak.files[0]
+            .as_any()
+            .downcast_ref::<rpak::apex::filetypes::uiia::UIImage>()
+            .unwrap();
+        std::fs::write("out.image.raw", &uiia.image_data);
     }
 }
 

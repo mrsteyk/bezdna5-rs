@@ -72,14 +72,16 @@ impl Model {
             let off = cursor.read_u32::<LE>()?;
             seeks[id as usize] + off as u64
         };
-        assert_eq!(cursor.read_u64::<LE>()?, 0, "Reserved != 0");
+        let unk8 = cursor.read_u64::<LE>()?;
+        // assert_eq!(unk8, 0, "Reserved != 0");
 
         let name_off = {
             let id = cursor.read_u32::<LE>()?;
             let off = cursor.read_u32::<LE>()?;
             seeks[id as usize] + off as u64
         };
-        assert_eq!(cursor.read_u64::<LE>()?, 0, "Reserved != 0");
+        let unk18 = cursor.read_u64::<LE>()?;
+        // assert_eq!(unk18, 0, "Reserved != 0");
 
         let unk20 = {
             let id = cursor.read_u32::<LE>()?;
