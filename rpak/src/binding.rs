@@ -120,7 +120,7 @@ fn bindgen_test_layout_rpak_decomp_state() {
         )
     );
     assert_eq!(
-        unsafe { &(*(::std::ptr::null::<rpak_decomp_state>())).qword30 as *const _ as usize },
+        unsafe { &(*(::std::ptr::null::<rpak_decomp_state>())).inv_mask_in as *const _ as usize },
         48usize,
         concat!(
             "Offset of field: ",
@@ -130,7 +130,7 @@ fn bindgen_test_layout_rpak_decomp_state() {
         )
     );
     assert_eq!(
-        unsafe { &(*(::std::ptr::null::<rpak_decomp_state>())).qword38 as *const _ as usize },
+        unsafe { &(*(::std::ptr::null::<rpak_decomp_state>())).inv_mask_out as *const _ as usize },
         56usize,
         concat!(
             "Offset of field: ",
