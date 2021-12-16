@@ -33,17 +33,17 @@ pub struct rpak_decomp_state {
     pub decompressed_size: u64,
     pub inv_mask_in: u64,
     pub inv_mask_out: u64,
-    pub unsigned40: u32,
+    pub header_skip_bytes_bs: u32, // some bs alignment or something, idk
     pub dword44: u32,
     pub input_byte_pos: u64,
     pub decompressed_position: u64,
-    pub len_needed: u64,
-    pub qword60: u64,
-    pub dword68: u32,
-    pub dword6C: u32,
-    pub qword70: u64,
-    pub qword78: u64,
-    pub qword80: u64,
+    pub len_needed: u64, // or a better name would be stream_file_len/stream_len_needed?
+    pub byte: u64, // cursor, prepend stream_?
+    pub byte_bit_offset: u32, // cursor bit offset, MUST BE < 8, prepend stream_?
+    pub dword6C: u32, // unknown bs, either 0 or 1, controls some LUT_200 offset (0/256)
+    pub qword70: u64, // initially (inv_mask_in-6), then can be (inv_mask_in + (inv_mask_in & -input_byte_pos) + 1)
+    pub stream_compressed_size: u64,
+    pub stream_decompressed_size: u64,
 }
 #[test]
 fn bindgen_test_layout_rpak_decomp_state() {
@@ -140,7 +140,7 @@ fn bindgen_test_layout_rpak_decomp_state() {
         )
     );
     assert_eq!(
-        unsafe { &(*(::std::ptr::null::<rpak_decomp_state>())).unsigned40 as *const _ as usize },
+        unsafe { &(*(::std::ptr::null::<rpak_decomp_state>())).header_skip_bytes_bs as *const _ as usize },
         64usize,
         concat!(
             "Offset of field: ",
@@ -190,7 +190,7 @@ fn bindgen_test_layout_rpak_decomp_state() {
         )
     );
     assert_eq!(
-        unsafe { &(*(::std::ptr::null::<rpak_decomp_state>())).qword60 as *const _ as usize },
+        unsafe { &(*(::std::ptr::null::<rpak_decomp_state>())).byte as *const _ as usize },
         96usize,
         concat!(
             "Offset of field: ",
@@ -200,7 +200,7 @@ fn bindgen_test_layout_rpak_decomp_state() {
         )
     );
     assert_eq!(
-        unsafe { &(*(::std::ptr::null::<rpak_decomp_state>())).dword68 as *const _ as usize },
+        unsafe { &(*(::std::ptr::null::<rpak_decomp_state>())).byte_bit_offset as *const _ as usize },
         104usize,
         concat!(
             "Offset of field: ",
@@ -230,7 +230,7 @@ fn bindgen_test_layout_rpak_decomp_state() {
         )
     );
     assert_eq!(
-        unsafe { &(*(::std::ptr::null::<rpak_decomp_state>())).qword78 as *const _ as usize },
+        unsafe { &(*(::std::ptr::null::<rpak_decomp_state>())).stream_compressed_size as *const _ as usize },
         120usize,
         concat!(
             "Offset of field: ",
@@ -240,7 +240,7 @@ fn bindgen_test_layout_rpak_decomp_state() {
         )
     );
     assert_eq!(
-        unsafe { &(*(::std::ptr::null::<rpak_decomp_state>())).qword80 as *const _ as usize },
+        unsafe { &(*(::std::ptr::null::<rpak_decomp_state>())).stream_decompressed_size as *const _ as usize },
         128usize,
         concat!(
             "Offset of field: ",
