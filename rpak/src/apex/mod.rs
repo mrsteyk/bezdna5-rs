@@ -171,7 +171,8 @@ pub struct PatchShit {
     // All this does is tell the compressed/decompressed size of the previous rpak in the chain...
     // Is this used to identify something or wha?
     pub decompressed_compressed_pair: Vec<(u64, u64)>,
-    pub unk_2: Vec<u16>,
+    // WHY THE FUCK DOES PAIR EXIST IF THIS IS WHAT YOU USE A+_DSAIODIOASBIDUSAO(DFBOAS(BDOSABOUDASBO))
+    pub rpak_number: Vec<u16>,
 }
 
 #[derive(Derivative)]
@@ -278,7 +279,7 @@ impl RPakFile {
                         )
                     })
                     .collect(),
-                unk_2: (0..header.patches_num)
+                rpak_number: (0..header.patches_num)
                     .map(|_| decompressed.read_u16::<LE>().unwrap())
                     .collect(),
             })
