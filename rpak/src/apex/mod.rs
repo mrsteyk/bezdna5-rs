@@ -163,9 +163,15 @@ impl RPakHeader {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct PatchHeader {
+    pub data_size: u32, // The size of the patch pages???
+    pub patch_from: u32, // First page to start patching
+}
+
 #[derive(Debug)]
 pub struct PatchShit {
-    pub unk_start: u64,
+    pub header: PatchHeader,
 
     // This is beyond dumb
     // All this does is tell the compressed/decompressed size of the previous rpak in the chain...
@@ -269,7 +275,10 @@ impl RPakFile {
         decompressed.seek(SeekFrom::Start(crate::HEADER_SIZE_APEX as u64))?;
         let patch_shit = if header.patches_num != 0 {
             Some(PatchShit {
-                unk_start: decompressed.read_u64::<LE>()?,
+                header: PatchHeader {
+                    data_size: decompressed.read_u32::<LE>()?,
+                    patch_from: decompressed.read_u32::<LE>()?,
+                },
 
                 decompressed_compressed_pair: (0..header.patches_num)
                     .map(|_| {
