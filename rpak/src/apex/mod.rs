@@ -72,7 +72,7 @@ pub struct RPakHeader {
     pub patches_num: u16, // 0x50
 
     pub unk52: u16,
-    pub unk54: u32,
+    pub num_descriptors: u32,
     pub num_files: u32,
     pub relationship: u32,
 
@@ -140,7 +140,7 @@ impl RPakHeader {
             patches_num: cursor.read_u16::<LE>()?,
             unk52: cursor.read_u16::<LE>()?,
 
-            unk54: cursor.read_u32::<LE>()?,
+            num_descriptors: cursor.read_u32::<LE>()?,
             num_files: cursor.read_u32::<LE>()?,
             relationship: cursor.read_u32::<LE>()?,
 
@@ -200,7 +200,7 @@ pub struct RPakFile {
     pub seeks: Vec<u64>,
 
     pub descriptors: Vec<(u32, u32)>,
-    pub relationship: Vec<(u32, u32)>,
+    pub descriptors_guid: Vec<(u32, u32)>, // what the fuck
     pub unk60: Vec<u32>,
     pub unk64: Vec<u32>,
     pub unk68: Vec<u8>,
@@ -301,12 +301,14 @@ impl RPakFile {
 
         let starpak_skipped = starpak_start + header.starpak_len as u64;
         decompressed.seek(SeekFrom::Start(starpak_skipped))?;
-        let starpak_opt = {
+        let starpak_opt = if header.starpak_opt_len != 0 {
             let tmp = string_from_buf(&mut decompressed);
             match tmp.len() {
                 0 => None,
                 _ => Some(tmp),
             }
+        } else {
+            None
         };
 
         let starpak_opt_skipped = starpak_skipped + header.starpak_opt_len as u64;
@@ -320,7 +322,7 @@ impl RPakFile {
         let data_chunks_skipped = sections_skipped + (12 * header.data_chunks_num as u64);
         // unk54 aka "where descriptors are" here (8)
         decompressed.seek(SeekFrom::Start(data_chunks_skipped))?;
-        let descriptors: Vec<(u32, u32)> = (0..header.unk54)
+        let descriptors: Vec<(u32, u32)> = (0..header.num_descriptors)
             .map(|_| {
                 (
                     decompressed.read_u32::<LE>().unwrap(),
@@ -329,7 +331,7 @@ impl RPakFile {
             })
             .collect();
 
-        let unk54_skipped = data_chunks_skipped + (8 * header.unk54 as u64);
+        let unk54_skipped = data_chunks_skipped + (8 * header.num_descriptors as u64);
         // parsing files is moved so we can get juicy file offsets
 
         let file_entries_skipped = unk54_skipped + (0x50 * header.num_files as u64);
@@ -428,7 +430,7 @@ impl RPakFile {
             seeks,
 
             descriptors,
-            relationship,
+            descriptors_guid: relationship,
             unk60,
             unk64,
             unk68,
