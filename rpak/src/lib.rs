@@ -57,7 +57,16 @@ pub trait FileEntry: Debug {
 /// Section Descriptor of RPak
 #[derive(Debug)]
 pub struct SectionDesc {
-    /// Weird section type, use `&0b111` to find out real type?
+    /// Weird section type, use `&0b111` (or `&63`) to find out real type?
+    /*
+        0 - seen as description
+        1 - seen as data for desc
+        2 - seen as data for file asset
+
+        64 - 64 + 0 - seen as description for some filetypes
+        65 - 64 + 1 - data for desc?
+        67 - 64 + 3 - seen as data for mats and rlcd??? also textures and shaders??
+    */
     pub section_type: u32,
     /// Align byte that sometimes gets used
     pub align_byte: u32,
