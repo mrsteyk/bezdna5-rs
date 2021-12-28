@@ -74,9 +74,9 @@ pub struct RPakHeader {
     pub unk52: u16,
     pub num_descriptors: u32,
     pub num_files: u32,
-    pub relationship: u32,
+    pub descriptors_guid: u32,
 
-    pub unk60: u32,
+    pub relations: u32,
     pub unk64: u32,
     pub unk68: u32,
     pub unk6c: u32,
@@ -142,9 +142,9 @@ impl RPakHeader {
 
             num_descriptors: cursor.read_u32::<LE>()?,
             num_files: cursor.read_u32::<LE>()?,
-            relationship: cursor.read_u32::<LE>()?,
+            descriptors_guid: cursor.read_u32::<LE>()?,
 
-            unk60: cursor.read_u32::<LE>()?,
+            relations: cursor.read_u32::<LE>()?,
             unk64: cursor.read_u32::<LE>()?,
             unk68: cursor.read_u32::<LE>()?,
             unk6c: cursor.read_u32::<LE>()?,
@@ -209,7 +209,7 @@ pub struct RPakFile {
 
     pub descriptors: Vec<(u32, u32)>,
     pub descriptors_guid: Vec<(u32, u32)>, // what the fuck
-    pub unk60: Vec<u32>,
+    pub relations: Vec<u32>,
     pub unk64: Vec<u32>,
     pub unk68: Vec<u8>,
     pub unk6c: Vec<(u64, u64)>,
@@ -345,7 +345,7 @@ impl RPakFile {
         let file_entries_skipped = unk54_skipped + (0x50 * header.num_files as u64);
         // unk5c here (8)
         decompressed.seek(SeekFrom::Start(file_entries_skipped))?;
-        let relationship: Vec<(u32, u32)> = (0..header.relationship)
+        let descriptors_guid: Vec<(u32, u32)> = (0..header.descriptors_guid)
             .map(|_| {
                 (
                     decompressed.read_u32::<LE>().unwrap(),
@@ -354,14 +354,14 @@ impl RPakFile {
             })
             .collect();
 
-        let unk5c_skipped = file_entries_skipped + (8 * header.relationship as u64);
+        let unk5c_skipped = file_entries_skipped + (8 * header.descriptors_guid as u64);
         // unk60 here (4)
         decompressed.seek(SeekFrom::Start(unk5c_skipped))?;
-        let unk60: Vec<u32> = (0..header.unk60)
+        let relations: Vec<u32> = (0..header.relations)
             .map(|_| decompressed.read_u32::<LE>().unwrap())
             .collect();
 
-        let unk60_skipped = unk5c_skipped + (4 * header.unk60 as u64);
+        let unk60_skipped = unk5c_skipped + (4 * header.relations as u64);
         // unk64 here (4)
         decompressed.seek(SeekFrom::Start(unk60_skipped))?;
         let unk64: Vec<u32> = (0..header.unk64)
@@ -448,8 +448,8 @@ impl RPakFile {
             seeks,
 
             descriptors,
-            descriptors_guid: relationship,
-            unk60,
+            descriptors_guid,
+            relations,
             unk64,
             unk68,
             unk6c,

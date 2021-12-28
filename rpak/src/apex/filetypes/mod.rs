@@ -25,6 +25,9 @@ pub struct FileGeneric {
     pub starpak: Option<u64>,
     pub starpak_opt: Option<u64>,
 
+    pub relations: (u32, u32),
+    pub relations2: (u32, u32),
+
     pub desc_size: u32,
 
     pub extension: String,
@@ -112,10 +115,11 @@ impl FileGeneric {
         let _unk30 = cursor.read_u16::<LE>()?;
         let _unk32 = cursor.read_u16::<LE>()?;
 
-        let _unk34 = cursor.read_u32::<LE>()?;
-        let _start_idx = cursor.read_u32::<LE>()?;
-        let _unk3c = cursor.read_u32::<LE>()?;
-        let _count = cursor.read_u32::<LE>()?;
+        // 2 types of relations???
+        let relationship_start = cursor.read_u32::<LE>()?; // unk2c from TF|2?
+        let start_idx = cursor.read_u32::<LE>()?;
+        let relationship_end = cursor.read_u32::<LE>()?; // unk34 from TF|2?
+        let count = cursor.read_u32::<LE>()?;
 
         let desc_size = cursor.read_u32::<LE>()?;
         let _description_align = cursor.read_u32::<LE>()?;
@@ -139,6 +143,9 @@ impl FileGeneric {
 
             starpak,
             starpak_opt,
+
+            relations: (relationship_start, relationship_end),
+            relations2: (start_idx, count),
 
             desc_size,
             extension,
