@@ -71,7 +71,7 @@ impl FileGeneric {
         cursor: &mut R,
         seeks: &[u64],
     ) -> Result<Self, std::io::Error> {
-        //let start_pos = cursor.stream_position()?;
+        let start_pos = cursor.stream_position()?;
 
         let guid = cursor.read_u64::<LE>()?;
         let _name_pad = cursor.read_u64::<LE>()?;
@@ -122,11 +122,15 @@ impl FileGeneric {
 
         let mut extension_raw = [0u8; 4];
         cursor.read_exact(&mut extension_raw)?;
-        let extension = if description_seek == 0 && data == None {
-            "BORK".to_owned()
-        } else {
-            unsafe { crate::util::str_from_u8_nul_utf8_unchecked(&extension_raw).to_owned() }
-        };
+        // let extension = if description_seek == 0 && data == None {
+        //     "BORK".to_owned()
+        // } else {
+        //     unsafe { crate::util::str_from_u8_nul_utf8_unchecked(&extension_raw).to_owned() }
+        // };
+
+        let extension = unsafe { crate::util::str_from_u8_nul_utf8_unchecked(&extension_raw).to_owned() };
+
+        debug_assert_eq!(cursor.stream_position().unwrap() - start_pos, 0x50);
 
         Ok(Self {
             guid,

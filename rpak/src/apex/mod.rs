@@ -165,8 +165,16 @@ impl RPakHeader {
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PatchHeader {
-    pub data_size: u32, // The size of the patch pages???
-    pub patch_from: u32, // First page to start patching
+    // Size of binary patch data before data pages begin
+    // Good fucking luck figuring out wtf is that
+    // fastpatch perhaps???
+    pub data_size: u32,
+    
+    // First page to start patching
+    // patching in this sense is replacing a whole page with our data
+    // patch rpaks still describe every page before them for some reason...
+    // with non zero sizes mind you
+    pub patch_from: u32,
 }
 
 #[derive(Debug)]
@@ -399,8 +407,18 @@ impl RPakFile {
         if header.data_chunks_num > 0 {
             seeks[0] = unk70_skipped;
             if header.data_chunks_num > 1 {
-                for i in 1..header.data_chunks_num as usize {
-                    seeks[i] = seeks[i - 1] + data_chunks[i - 1].size as u64;
+                if let Some(patch) = &patch_shit {
+                    for i in 0..patch.header.patch_from as usize {
+                        seeks[i] = 0
+                    }
+                    seeks[patch.header.patch_from as usize] = unk70_skipped + patch.header.data_size as u64;
+                    for i in patch.header.patch_from as usize + 1..header.data_chunks_num as usize {
+                        seeks[i] = seeks[i - 1] + data_chunks[i - 1].size as u64;
+                    }
+                } else {
+                    for i in 1..header.data_chunks_num as usize {
+                        seeks[i] = seeks[i - 1] + data_chunks[i - 1].size as u64;
+                    }
                 }
             }
         }

@@ -53,10 +53,10 @@ fn main() {
                     //     let chunk = &arpak.data_chunks[i];
                     //     println!("{}: @{:016X} {:?}", i, arpak.seeks[i], chunk);
                     // }
-                    for i in &arpak.descriptors_guid {
-                        let (page, offset) = *i;
-                        println!("@{:016X}", arpak.seeks[page as usize] + offset as u64)
-                    }
+                    // for i in &arpak.descriptors_guid {
+                    //     let (page, offset) = *i;
+                    //     println!("@{:016X}", arpak.seeks[page as usize] + offset as u64)
+                    // }
                 } else {
                     unreachable!()
                 }
