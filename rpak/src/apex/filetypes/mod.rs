@@ -26,7 +26,7 @@ pub struct FileGeneric {
     pub starpak_opt: Option<u64>,
 
     pub relations: (u32, u32),
-    pub relations2: (u32, u32),
+    pub relations_guid: (u32, u32),
 
     pub desc_size: u32,
 
@@ -146,7 +146,7 @@ impl FileGeneric {
             starpak_opt,
 
             relations: (relationship_start, relationship_end),
-            relations2: (start_idx, count),
+            relations_guid: (start_idx, count),
 
             desc_size,
             extension,
