@@ -169,7 +169,7 @@ pub struct PatchHeader {
     // Good fucking luck figuring out wtf is that
     // fastpatch perhaps???
     pub data_size: u32,
-    
+
     // First page to start patching
     // patching in this sense is replacing a whole page with our data
     // patch rpaks still describe every page before them for some reason...
@@ -411,7 +411,8 @@ impl RPakFile {
                     for i in 0..patch.header.patch_from as usize {
                         seeks[i] = 0
                     }
-                    seeks[patch.header.patch_from as usize] = unk70_skipped + patch.header.data_size as u64;
+                    seeks[patch.header.patch_from as usize] =
+                        unk70_skipped + patch.header.data_size as u64;
                     for i in patch.header.patch_from as usize + 1..header.data_chunks_num as usize {
                         seeks[i] = seeks[i - 1] + data_chunks[i - 1].size as u64;
                     }

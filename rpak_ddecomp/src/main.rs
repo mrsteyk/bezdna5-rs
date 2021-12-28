@@ -48,7 +48,7 @@ fn main() {
             Ok(mut rpak) => {
                 if let Some(arpak) = rpak.as_any_mut().downcast_mut::<rpak::apex::RPakFile>() {
                     println!("{:#X?}", arpak);
-                    
+
                     // for i in 0..arpak.data_chunks.len() {
                     //     let chunk = &arpak.data_chunks[i];
                     //     println!("{}: @{:016X} {:?}", i, arpak.seeks[i], chunk);

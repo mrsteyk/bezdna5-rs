@@ -132,7 +132,8 @@ impl FileGeneric {
         //     unsafe { crate::util::str_from_u8_nul_utf8_unchecked(&extension_raw).to_owned() }
         // };
 
-        let extension = unsafe { crate::util::str_from_u8_nul_utf8_unchecked(&extension_raw).to_owned() };
+        let extension =
+            unsafe { crate::util::str_from_u8_nul_utf8_unchecked(&extension_raw).to_owned() };
 
         debug_assert_eq!(cursor.stream_position().unwrap() - start_pos, 0x50);
 
