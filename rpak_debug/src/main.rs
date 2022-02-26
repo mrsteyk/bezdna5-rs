@@ -16,13 +16,13 @@ fn apex(rpak: &mut rpak::apex::RPakFile, guid_name: &HashMap<u64, String>) {
 
     print!("Parsing files...");
     rpak.parse_files(&rpak::apex::ParseFileOptions {
-        arig: true,
-        dtbl: true,
-        matl: true,
-        rmdl: true,
+        arig: false,
+        dtbl: false,
+        matl: false,
+        rmdl: false,
         txtr: true,
         uimg: true,
-        uiia: true, // New S11 hot shit, might explain why my builds had crusty as fuck main menu
+        uiia: false, // New S11 hot shit, might explain why my builds had crusty as fuck main menu
         patch: true,
         ..Default::default()
     })

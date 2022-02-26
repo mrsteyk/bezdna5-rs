@@ -34,7 +34,7 @@ pub struct rpak_decomp_state {
     pub inv_mask_in: u64,
     pub inv_mask_out: u64,
     pub header_skip_bytes_bs: u32, // some bs alignment or something, idk
-    pub dword44: u32,
+    pub dword44: u32, // what the fuck?
     pub input_byte_pos: u64,
     pub decompressed_position: u64,
     pub len_needed: u64, // or a better name would be stream_file_len/stream_len_needed?
