@@ -63,7 +63,7 @@ pub fn decompress(
                     eprintln!("{:#?}", state);
                 }
                 Ok(ret)
-            },
+            }
             None => Err(Error::DecompressionError),
         }
     } else {

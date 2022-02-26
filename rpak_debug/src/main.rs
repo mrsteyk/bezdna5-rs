@@ -44,8 +44,8 @@ fn apex(rpak: &mut rpak::apex::RPakFile, guid_name: &HashMap<u64, String>) {
     println!("{} | {}\n", header.patches_num, header.is_compressed());
 
     println!("descriptors: {:#?}\n", rpak.descriptors);
-    println!("relationship: {:#?}\n", rpak.relationship);
-    println!("unk60: {:#?}\n", rpak.unk60);
+    println!("descriptors_guid: {:#?}\n", rpak.descriptors_guid);
+    println!("relations: {:#?}\n", rpak.relations);
     println!("unk64: {:#?}\n", rpak.unk64);
     println!("unk68: {:#?}\n", rpak.unk68);
     println!("unk6c: {:#?}\n", rpak.unk6c);

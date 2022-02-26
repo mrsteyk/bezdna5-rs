@@ -41,6 +41,29 @@ fn main() {
         std::fs::write(args[1].to_owned() + ".raw", decompressed).unwrap();
         println!("ok");
 
-        println!("{:#?}", header);
+        // println!("{:#?}", header);
+
+        cursor.seek(SeekFrom::Start(0)).unwrap();
+        match rpak::parse_rpak(&mut cursor) {
+            Ok(mut rpak) => {
+                if let Some(arpak) = rpak.as_any_mut().downcast_mut::<rpak::apex::RPakFile>() {
+                    println!("{:#X?}", arpak);
+
+                    // for i in 0..arpak.data_chunks.len() {
+                    //     let chunk = &arpak.data_chunks[i];
+                    //     println!("{}: @{:016X} {:?}", i, arpak.seeks[i], chunk);
+                    // }
+                    // for i in &arpak.descriptors_guid {
+                    //     let (page, offset) = *i;
+                    //     println!("@{:016X}", arpak.seeks[page as usize] + offset as u64)
+                    // }
+                } else {
+                    unreachable!()
+                }
+            }
+            Err(err) => {
+                panic!("{:?}", err);
+            }
+        }
     }
 }

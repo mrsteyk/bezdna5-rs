@@ -25,6 +25,9 @@ pub struct FileGeneric {
     pub starpak: Option<u64>,
     pub starpak_opt: Option<u64>,
 
+    pub relations: (u32, u32),
+    pub relations_guid: (u32, u32),
+
     pub desc_size: u32,
 
     pub extension: String,
@@ -71,7 +74,7 @@ impl FileGeneric {
         cursor: &mut R,
         seeks: &[u64],
     ) -> Result<Self, std::io::Error> {
-        //let start_pos = cursor.stream_position()?;
+        let start_pos = cursor.stream_position()?;
 
         let guid = cursor.read_u64::<LE>()?;
         let _name_pad = cursor.read_u64::<LE>()?;
@@ -112,21 +115,27 @@ impl FileGeneric {
         let _unk30 = cursor.read_u16::<LE>()?;
         let _unk32 = cursor.read_u16::<LE>()?;
 
-        let _unk34 = cursor.read_u32::<LE>()?;
-        let _start_idx = cursor.read_u32::<LE>()?;
-        let _unk3c = cursor.read_u32::<LE>()?;
-        let _count = cursor.read_u32::<LE>()?;
+        // 2 types of relations???
+        let relationship_start = cursor.read_u32::<LE>()?; // unk2c from TF|2?
+        let start_idx = cursor.read_u32::<LE>()?;
+        let relationship_end = cursor.read_u32::<LE>()?; // unk34 from TF|2?
+        let count = cursor.read_u32::<LE>()?;
 
         let desc_size = cursor.read_u32::<LE>()?;
         let _description_align = cursor.read_u32::<LE>()?;
 
         let mut extension_raw = [0u8; 4];
         cursor.read_exact(&mut extension_raw)?;
-        let extension = if description_seek == 0 && data == None {
-            "BORK".to_owned()
-        } else {
-            unsafe { crate::util::str_from_u8_nul_utf8_unchecked(&extension_raw).to_owned() }
-        };
+        // let extension = if description_seek == 0 && data == None {
+        //     "BORK".to_owned()
+        // } else {
+        //     unsafe { crate::util::str_from_u8_nul_utf8_unchecked(&extension_raw).to_owned() }
+        // };
+
+        let extension =
+            unsafe { crate::util::str_from_u8_nul_utf8_unchecked(&extension_raw).to_owned() };
+
+        debug_assert_eq!(cursor.stream_position().unwrap() - start_pos, 0x50);
 
         Ok(Self {
             guid,
@@ -135,6 +144,9 @@ impl FileGeneric {
 
             starpak,
             starpak_opt,
+
+            relations: (relationship_start, relationship_end),
+            relations_guid: (start_idx, count),
 
             desc_size,
             extension,

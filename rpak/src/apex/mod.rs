@@ -72,11 +72,11 @@ pub struct RPakHeader {
     pub patches_num: u16, // 0x50
 
     pub unk52: u16,
-    pub unk54: u32,
+    pub num_descriptors: u32,
     pub num_files: u32,
-    pub relationship: u32,
+    pub descriptors_guid: u32,
 
-    pub unk60: u32,
+    pub relations: u32,
     pub unk64: u32,
     pub unk68: u32,
     pub unk6c: u32,
@@ -140,11 +140,11 @@ impl RPakHeader {
             patches_num: cursor.read_u16::<LE>()?,
             unk52: cursor.read_u16::<LE>()?,
 
-            unk54: cursor.read_u32::<LE>()?,
+            num_descriptors: cursor.read_u32::<LE>()?,
             num_files: cursor.read_u32::<LE>()?,
-            relationship: cursor.read_u32::<LE>()?,
+            descriptors_guid: cursor.read_u32::<LE>()?,
 
-            unk60: cursor.read_u32::<LE>()?,
+            relations: cursor.read_u32::<LE>()?,
             unk64: cursor.read_u32::<LE>()?,
             unk68: cursor.read_u32::<LE>()?,
             unk6c: cursor.read_u32::<LE>()?,
@@ -163,12 +163,30 @@ impl RPakHeader {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct PatchHeader {
+    // Size of binary patch data before data pages begin
+    // Good fucking luck figuring out wtf is that
+    // fastpatch perhaps???
+    pub data_size: u32,
+
+    // First page to start patching
+    // patching in this sense is replacing a whole page with our data
+    // patch rpaks still describe every page before them for some reason...
+    // with non zero sizes mind you
+    pub patch_from: u32,
+}
+
 #[derive(Debug)]
 pub struct PatchShit {
-    pub unk_start: u64,
+    pub header: PatchHeader,
 
-    pub unk_16: Vec<(u64, u64)>,
-    pub unk_2: Vec<u16>,
+    // This is beyond dumb
+    // All this does is tell the compressed/decompressed size of the previous rpak in the chain...
+    // Is this used to identify something or wha?
+    pub decompressed_compressed_pair: Vec<(u64, u64)>,
+    // WHY THE FUCK DOES PAIR EXIST IF THIS IS WHAT YOU USE A+_DSAIODIOASBIDUSAO(DFBOAS(BDOSABOUDASBO))
+    pub rpak_number: Vec<u16>,
 }
 
 #[derive(Derivative)]
@@ -190,8 +208,8 @@ pub struct RPakFile {
     pub seeks: Vec<u64>,
 
     pub descriptors: Vec<(u32, u32)>,
-    pub relationship: Vec<(u32, u32)>,
-    pub unk60: Vec<u32>,
+    pub descriptors_guid: Vec<(u32, u32)>, // what the fuck
+    pub relations: Vec<u32>,
     pub unk64: Vec<u32>,
     pub unk68: Vec<u8>,
     pub unk6c: Vec<(u64, u64)>,
@@ -265,9 +283,12 @@ impl RPakFile {
         decompressed.seek(SeekFrom::Start(crate::HEADER_SIZE_APEX as u64))?;
         let patch_shit = if header.patches_num != 0 {
             Some(PatchShit {
-                unk_start: decompressed.read_u64::<LE>()?,
+                header: PatchHeader {
+                    data_size: decompressed.read_u32::<LE>()?,
+                    patch_from: decompressed.read_u32::<LE>()?,
+                },
 
-                unk_16: (0..header.patches_num)
+                decompressed_compressed_pair: (0..header.patches_num)
                     .map(|_| {
                         (
                             decompressed.read_u64::<LE>().unwrap(),
@@ -275,7 +296,7 @@ impl RPakFile {
                         )
                     })
                     .collect(),
-                unk_2: (0..header.patches_num)
+                rpak_number: (0..header.patches_num)
                     .map(|_| decompressed.read_u16::<LE>().unwrap())
                     .collect(),
             })
@@ -288,12 +309,14 @@ impl RPakFile {
 
         let starpak_skipped = starpak_start + header.starpak_len as u64;
         decompressed.seek(SeekFrom::Start(starpak_skipped))?;
-        let starpak_opt = {
+        let starpak_opt = if header.starpak_opt_len != 0 {
             let tmp = string_from_buf(&mut decompressed);
             match tmp.len() {
                 0 => None,
                 _ => Some(tmp),
             }
+        } else {
+            None
         };
 
         let starpak_opt_skipped = starpak_skipped + header.starpak_opt_len as u64;
@@ -307,7 +330,7 @@ impl RPakFile {
         let data_chunks_skipped = sections_skipped + (12 * header.data_chunks_num as u64);
         // unk54 aka "where descriptors are" here (8)
         decompressed.seek(SeekFrom::Start(data_chunks_skipped))?;
-        let descriptors: Vec<(u32, u32)> = (0..header.unk54)
+        let descriptors: Vec<(u32, u32)> = (0..header.num_descriptors)
             .map(|_| {
                 (
                     decompressed.read_u32::<LE>().unwrap(),
@@ -316,13 +339,13 @@ impl RPakFile {
             })
             .collect();
 
-        let unk54_skipped = data_chunks_skipped + (8 * header.unk54 as u64);
+        let unk54_skipped = data_chunks_skipped + (8 * header.num_descriptors as u64);
         // parsing files is moved so we can get juicy file offsets
 
         let file_entries_skipped = unk54_skipped + (0x50 * header.num_files as u64);
         // unk5c here (8)
         decompressed.seek(SeekFrom::Start(file_entries_skipped))?;
-        let relationship: Vec<(u32, u32)> = (0..header.relationship)
+        let descriptors_guid: Vec<(u32, u32)> = (0..header.descriptors_guid)
             .map(|_| {
                 (
                     decompressed.read_u32::<LE>().unwrap(),
@@ -331,14 +354,14 @@ impl RPakFile {
             })
             .collect();
 
-        let unk5c_skipped = file_entries_skipped + (8 * header.relationship as u64);
+        let unk5c_skipped = file_entries_skipped + (8 * header.descriptors_guid as u64);
         // unk60 here (4)
         decompressed.seek(SeekFrom::Start(unk5c_skipped))?;
-        let unk60: Vec<u32> = (0..header.unk60)
+        let relations: Vec<u32> = (0..header.relations)
             .map(|_| decompressed.read_u32::<LE>().unwrap())
             .collect();
 
-        let unk60_skipped = unk5c_skipped + (4 * header.unk60 as u64);
+        let unk60_skipped = unk5c_skipped + (4 * header.relations as u64);
         // unk64 here (4)
         decompressed.seek(SeekFrom::Start(unk60_skipped))?;
         let unk64: Vec<u32> = (0..header.unk64)
@@ -384,8 +407,19 @@ impl RPakFile {
         if header.data_chunks_num > 0 {
             seeks[0] = unk70_skipped;
             if header.data_chunks_num > 1 {
-                for i in 1..header.data_chunks_num as usize {
-                    seeks[i] = seeks[i - 1] + data_chunks[i - 1].size as u64;
+                if let Some(patch) = &patch_shit {
+                    for i in 0..patch.header.patch_from as usize {
+                        seeks[i] = 0
+                    }
+                    seeks[patch.header.patch_from as usize] =
+                        unk70_skipped + patch.header.data_size as u64;
+                    for i in patch.header.patch_from as usize + 1..header.data_chunks_num as usize {
+                        seeks[i] = seeks[i - 1] + data_chunks[i - 1].size as u64;
+                    }
+                } else {
+                    for i in 1..header.data_chunks_num as usize {
+                        seeks[i] = seeks[i - 1] + data_chunks[i - 1].size as u64;
+                    }
                 }
             }
         }
@@ -415,8 +449,8 @@ impl RPakFile {
             seeks,
 
             descriptors,
-            relationship,
-            unk60,
+            descriptors_guid,
+            relations,
             unk64,
             unk68,
             unk6c,
