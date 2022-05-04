@@ -27,6 +27,25 @@ impl From<TextureError> for crate::RPakError {
     }
 }
 
+#[repr(C)]
+pub struct TextureHeaderBSS13 {
+    pub name: (u32, u32),
+    pub format: u16,
+    pub width: u16,
+    pub height: u16,
+    pub pad: u16, // always 0???
+    pub array_size: u8,
+    pub misc_flags: u8,
+    _pad: u8,
+    pub usage: u8,
+    _pad2: u8,
+    _pad3: u16,
+    _pad4: u8,
+    pub mips_1: u8, // static?
+    pub mips_2: u8, // starpak?
+    pub mips_3: u8, // opt?
+}
+
 pub const TEXTURE_ALGOS: [&str; 64] = [
     "DXT1",    // 0
     "DXT1",    // 1
