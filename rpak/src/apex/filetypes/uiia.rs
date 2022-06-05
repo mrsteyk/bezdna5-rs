@@ -70,6 +70,10 @@ impl crate::FileEntry for UIImage {
         self.generic.get_star_opt_off()
     }
 
+    fn get_version(&self) -> u32 {
+        self.generic.version
+    }
+
     fn get_ext(&self) -> &str {
         "uiia"
     }

@@ -49,6 +49,10 @@ impl crate::FileEntry for AnimationRig {
         self.internal.get_star_opt_off()
     }
 
+    fn get_version(&self) -> u32 {
+        self.internal.version
+    }
+
     fn get_ext(&self) -> &str {
         "arig"
     }

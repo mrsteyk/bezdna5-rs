@@ -51,6 +51,8 @@ pub trait FileEntry: Debug {
     fn get_star_off(&self) -> Option<u64>;
     /// Apex specific optional StarPak offset. Not all files have it.
     fn get_star_opt_off(&self) -> Option<u64>; // TF2 won't implement this rather...
+    /// Get asset version
+    fn get_version(&self) -> u32;
 }
 
 // this is static across all(2) games

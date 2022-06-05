@@ -29,6 +29,7 @@ pub struct FileGeneric {
     pub relations_guid: (u32, u32),
 
     pub desc_size: u32,
+    pub version: u32,
 
     pub extension: String,
 }
@@ -62,6 +63,10 @@ impl crate::FileEntry for FileGeneric {
     }
     fn get_star_opt_off(&self) -> Option<u64> {
         self.starpak_opt
+    }
+
+    fn get_version(&self) -> u32 {
+        self.version
     }
 
     fn get_ext(&self) -> &str {
@@ -122,7 +127,7 @@ impl FileGeneric {
         let count = cursor.read_u32::<LE>()?;
 
         let desc_size = cursor.read_u32::<LE>()?;
-        let _description_align = cursor.read_u32::<LE>()?;
+        let version = cursor.read_u32::<LE>()?;
 
         let mut extension_raw = [0u8; 4];
         cursor.read_exact(&mut extension_raw)?;
@@ -149,6 +154,7 @@ impl FileGeneric {
             relations_guid: (start_idx, count),
 
             desc_size,
+            version,
             extension,
         })
     }

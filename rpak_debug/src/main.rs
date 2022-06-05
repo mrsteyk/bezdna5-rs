@@ -18,7 +18,7 @@ fn apex(rpak: &mut rpak::apex::RPakFile, guid_name: &HashMap<u64, String>) {
     rpak.parse_files(&rpak::apex::ParseFileOptions {
         arig: false,
         dtbl: false,
-        matl: false,
+        matl: true,
         rmdl: false,
         txtr: true,
         uimg: true,

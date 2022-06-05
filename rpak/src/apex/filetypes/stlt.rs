@@ -75,6 +75,10 @@ impl crate::FileEntry for SettingsLayout {
         None
     }
 
+    fn get_version(&self) -> u32 {
+        self.internal.version
+    }
+
     fn get_ext(&self) -> &str {
         "stlt"
     }

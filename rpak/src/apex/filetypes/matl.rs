@@ -70,6 +70,10 @@ impl crate::FileEntry for Material {
         None
     }
 
+    fn get_version(&self) -> u32 {
+        self.generic.version
+    }
+
     fn get_ext(&self) -> &str {
         "matl"
     }

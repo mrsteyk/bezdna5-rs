@@ -63,6 +63,10 @@ impl crate::FileEntry for Settings {
         None
     }
 
+    fn get_version(&self) -> u32 {
+        self.internal.version
+    }
+
     fn get_ext(&self) -> &str {
         "stgs"
     }

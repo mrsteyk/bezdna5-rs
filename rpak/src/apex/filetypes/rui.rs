@@ -153,6 +153,10 @@ impl crate::FileEntry for RUI {
         None // we know for sure
     }
 
+    fn get_version(&self) -> u32 {
+        self.generic.version
+    }
+
     fn get_ext(&self) -> &str {
         "ui"
     }
